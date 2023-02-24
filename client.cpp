@@ -62,6 +62,7 @@ ssize_t IPKCPClient::send(char* buffer) {
 	if (this->protocol == SOCK_STREAM) {
 		return this->send_tcp(buffer);
 	}
+
 	return this->send_udp(buffer);
 }
 
@@ -69,6 +70,7 @@ ssize_t IPKCPClient::recv(char* buffer) {
 	if (this->protocol == SOCK_STREAM) {
 		return this->recv_tcp(buffer);
 	}
+
 	return this->recv_udp(buffer);
 }
 
@@ -83,10 +85,15 @@ ssize_t IPKCPClient::send_tcp(char* buffer) const {
 }
 
 ssize_t IPKCPClient::send_udp(char* buffer) {
-	// TODO: implement
-	(void)buffer;
-	(void)this;
-	return EXIT_FAILURE;
+	ssize_t write_size = sendto(
+	    this->fd, buffer, strlen(buffer), 0,
+	    reinterpret_cast<struct sockaddr*>(&(this->addr)), this->addr_len);
+
+	if (write_size < 0) {
+		std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+	}
+
+	return write_size;
 }
 
 ssize_t IPKCPClient::recv_tcp(char* buffer) const {
@@ -104,8 +111,13 @@ ssize_t IPKCPClient::recv_tcp(char* buffer) const {
 }
 
 ssize_t IPKCPClient::recv_udp(char* buffer) {
-	// TODO: implement
-	(void)buffer;
-	(void)this;
-	exit(EXIT_FAILURE);
+	ssize_t read_size = recvfrom(
+	    this->fd, buffer, BUFFER_SIZE - 1, 0,
+	    reinterpret_cast<struct sockaddr*>(&(this->addr)), &(this->addr_len));
+
+	if (read_size < 0) {
+		std::cerr << "!ERR! Failed to read data from server!" << std::endl;
+	}
+
+	return read_size;
 }

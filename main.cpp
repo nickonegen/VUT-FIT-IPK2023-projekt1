@@ -61,12 +61,6 @@ int main(int argc, char* argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	/* UDP not implemented yet */
-	if (protocol == "udp") {
-		cerr << "!ERR! UDP not implemented yet!" << endl;
-		return EXIT_FAILURE;
-	}
-
 	/* Create client */
 	IPKCPClient client(port, hostname,
 				    protocol == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
@@ -93,7 +87,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		/* Print response */
-		cout << buffer.data();
+		cout << buffer.data() << endl;
 		if (strcmp(buffer.data(), "BYE") == 0) {
 			return EXIT_SUCCESS;
 		}
