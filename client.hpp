@@ -5,30 +5,46 @@
 
 #include <netdb.h>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <utility>
 
-#define BUFFER_SIZE 512
-#define TIMEOUT 5  // in seconds
+typedef int8_t opcode_t;
+typedef int8_t status_t;
 
-struct IPKCPClient {
+#define OP_REQUEST (opcode_t)0
+#define OP_RESPONSE (opcode_t)1
+#define STATUS_OK (status_t)0
+#define STATUS_ERROR (status_t)1
+#define BUFFER_SIZE (int)512
+
+class IPKCPClient {
+   public:
+	IPKCPClient(int port, std::string hostname, int protocol);
+	~IPKCPClient();
+	void connect();
+	ssize_t send(char* buffer);
+	ssize_t recv(char* buffer);
+
+   private:
 	int fd;
 	int port;
-	char* mode = NULL;
-	char* hostname = NULL;
-	struct hostent* host = NULL;
-	struct sockaddr_in host_address;
-	socklen_t address_size = sizeof(host_address);
+	int protocol;
+	std::string hostname;
+	struct hostent* host;
+	struct sockaddr_in addr {};
+	socklen_t addr_len = sizeof(addr);
+	ssize_t send_tcp(char* buffer) const;
+	ssize_t send_udp(char* buffer);
+	ssize_t recv_tcp(char* buffer) const;
+	ssize_t recv_udp(char* buffer);
 };
-
-int communicate_tcp();
-
-using namespace std;
 
 #endif  // CLIENT_HPP
