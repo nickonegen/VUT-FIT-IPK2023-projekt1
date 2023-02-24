@@ -23,7 +23,9 @@ typedef int8_t status_t;
 #define OP_RESPONSE (opcode_t)1
 #define STATUS_OK (status_t)0
 #define STATUS_ERROR (status_t)1
+
 #define BUFFER_SIZE (int)512
+#define TIMEOUT (int)4  // in seconds
 
 class IPKCPClient {
    public:
@@ -34,7 +36,7 @@ class IPKCPClient {
 	IPKCPClient(const IPKCPClient&) = default;
 	~IPKCPClient();
 
-	void connect();
+	int connect();
 	ssize_t send(char* buffer);
 	ssize_t recv(char* buffer);
 
