@@ -28,11 +28,11 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		exit(EXIT_FAILURE);
 	}
 
-	bzero(reinterpret_cast<char*>(&(this->addr)), this->addr_len);
+	memset(reinterpret_cast<char*>(&(this->addr)), 0, this->addr_len);
 	this->addr.sin_family = AF_INET;
-	bcopy(this->host->h_addr,
-		 reinterpret_cast<char*>(&(this->addr).sin_addr.s_addr),
-		 this->host->h_length);
+	memcpy(this->host->h_addr,
+		  reinterpret_cast<char*>(&(this->addr).sin_addr.s_addr),
+		  this->host->h_length);
 	this->addr.sin_port = htons(this->port);
 }
 
