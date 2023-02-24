@@ -69,7 +69,38 @@ void handle_tcp() {
 }
 
 void handle_udp() {
-	// TODO
+	struct sockaddr_in client_addr;
+	socklen_t client_size = sizeof(client_addr);
+
+	/* Read from client */
+	char buffer[BUFFER_SIZE] = {0};
+	ssize_t read_size = recvfrom(server->fd, buffer, BUFFER_SIZE - 1, 0,
+						    (struct sockaddr*)&client_addr, &client_size);
+	if (read_size <= 0) {
+		cerr << "!ERR! Problem reading from socket!" << endl;
+		return;
+	}
+
+	buffer[read_size] = '\0';
+	string message = string(buffer);
+
+	/* End connection if message is BYE */
+	if (strcmp(buffer, "BYE") == 0) {
+		sendto(server->fd, "BYE", 3, 0, (struct sockaddr*)&client_addr,
+			  client_size);
+		return;
+	}
+
+	/* DEBUG: Respond with reversed string */
+	string response = message;
+	reverse(response.begin(), response.end());
+	ssize_t write_size
+	    = sendto(server->fd, response.c_str(), response.size(), 0,
+			   (struct sockaddr*)&client_addr, client_size);
+	if (write_size < 0) {
+		cerr << "!ERR! Problem writing to socket!" << endl;
+		return;
+	}
 }
 
 void server_shutdown(int sig) {
@@ -127,12 +158,6 @@ int main(int argc, char* const* argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	// TODO: UDP support
-	if (strcmp(server->mode, "udp") == 0) {
-		cerr << "!ERR! UDP mode not supported yet!" << endl;
-		exit(EXIT_FAILURE);
-	}
-
 	int type = strcmp(server->mode, "tcp") == 0 ? SOCK_STREAM : SOCK_DGRAM;
 
 	/* Create socket */
@@ -168,16 +193,18 @@ int main(int argc, char* const* argv) {
 	/* Signal handler for graceful exit on CTRL+C */
 	signal(SIGINT, server_shutdown);
 
+	if (type == SOCK_STREAM) {
+		/* Listen for new connections */
+		if (listen(server->fd, MAX_CLIENTS) < 0) {
+			cerr << "!ERR! Failed to listen on port " << server->port << "!"
+				<< endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	/* Handle connections/diagrams */
 	while (true) {
 		if (type == SOCK_STREAM) {
-			/* Listen for new connections */
-			if (listen(server->fd, MAX_CLIENTS) < 0) {
-				cerr << "!ERR! Failed to listen on port " << server->port
-					<< "!" << endl;
-				exit(EXIT_FAILURE);
-			}
-
 			/* TCP, use textual data */
 			handle_tcp();
 		} else {
