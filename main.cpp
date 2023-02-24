@@ -78,23 +78,23 @@ int main(int argc, char* argv[]) {
 	// TODO: Put this into separate function
 	while (true) {
 		/* Read input */
-		char buffer[BUFFER_SIZE] = {0};
-		std::cin.getline(buffer, BUFFER_SIZE - 1);
+		std::array<char, BUFFER_SIZE> buffer{};
+		std::cin.getline(buffer.data(), BUFFER_SIZE - 1);
 
 		/* Send input to server */
-		if (client.send(buffer) < 0) {
+		if (client.send(buffer.data()) < 0) {
 			return EXIT_FAILURE;
 		}
 
 		/* Receive response from server */
-		bzero(buffer, BUFFER_SIZE);
-		if (client.recv(buffer) <= 0) {
+		memset(buffer.data(), 0, BUFFER_SIZE);
+		if (client.recv(buffer.data()) <= 0) {
 			return EXIT_FAILURE;
 		}
 
 		/* Print response */
-		cout << buffer << endl;
-		if (strcmp(buffer, "BYE") == 0) {
+		cout << buffer.data();
+		if (strcmp(buffer.data(), "BYE") == 0) {
 			return EXIT_SUCCESS;
 		}
 	}
