@@ -28,7 +28,12 @@ typedef int8_t status_t;
 class IPKCPClient {
    public:
 	IPKCPClient(int port, std::string hostname, int protocol);
+	IPKCPClient& operator=(IPKCPClient&& other) = default;
+	IPKCPClient& operator=(const IPKCPClient&) = default;
+	IPKCPClient(IPKCPClient&& other) = default;
+	IPKCPClient(const IPKCPClient&) = default;
 	~IPKCPClient();
+
 	void connect();
 	ssize_t send(char* buffer);
 	ssize_t recv(char* buffer);
