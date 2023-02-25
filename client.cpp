@@ -81,22 +81,6 @@ int IPKCPClient::connect() {
 	return 0;
 }
 
-ssize_t IPKCPClient::send(char* buffer) {
-	if (this->protocol == SOCK_STREAM) {
-		return this->send_tcp(buffer);
-	}
-
-	return this->send_udp(buffer);
-}
-
-ssize_t IPKCPClient::recv(char* buffer) {
-	if (this->protocol == SOCK_STREAM) {
-		return this->recv_tcp(buffer);
-	}
-
-	return this->recv_udp(buffer);
-}
-
 ssize_t IPKCPClient::send_tcp(char* buffer) const {
 	ssize_t write_size = write(this->fd, buffer, strlen(buffer));
 

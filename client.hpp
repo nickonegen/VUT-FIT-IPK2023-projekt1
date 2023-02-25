@@ -37,8 +37,14 @@ class IPKCPClient {
 	~IPKCPClient();
 
 	int connect();
-	ssize_t send(char* buffer);
-	ssize_t recv(char* buffer);
+	ssize_t send(char* buffer) {
+		return (this->protocol == SOCK_STREAM) ? this->send_tcp(buffer)
+									    : this->send_udp(buffer);
+	}
+	ssize_t recv(char* buffer) {
+		return (this->protocol == SOCK_STREAM) ? this->recv_tcp(buffer)
+									    : this->recv_udp(buffer);
+	}
 
    private:
 	int fd;
