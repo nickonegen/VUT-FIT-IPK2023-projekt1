@@ -50,7 +50,15 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	}
 }
 
-IPKCPClient::~IPKCPClient() { close(fd); }
+IPKCPClient::~IPKCPClient() {
+	if (this->protocol == SOCK_STREAM) {
+		this->send(const_cast<char*>("BYE"));
+	}
+
+	std::cout << "Closing connection..." << std::endl;
+	shutdown(this->fd, SHUT_RDWR);
+	close(fd);
+}
 
 int IPKCPClient::connect() {
 	/* UDP is connectionless */
