@@ -13,6 +13,13 @@ int main(int argc, char* argv[]) {
 	using std::cout;
 	using std::endl;
 
+	/* Set up signal handler */
+	struct sigaction sig_act {};
+	memset(&sig_act, 0, sizeof(sig_act));
+	sig_act.sa_handler = signal_handler;
+	sigfillset(&sig_act.sa_mask);
+	sigaction(SIGINT, &sig_act, NULL);
+
 	/* Parse command line options */
 	int opt;
 	int port = 0;
@@ -90,6 +97,12 @@ int main(int argc, char* argv[]) {
 		cout << buffer.data() << endl;
 		if (strcmp(buffer.data(), "BYE") == 0) {
 			return EXIT_SUCCESS;
+		}
+
+		/* Required for proper signal handling */
+		sleep(1);
+		if (quit.load()) {
+			break;
 		}
 	}
 
