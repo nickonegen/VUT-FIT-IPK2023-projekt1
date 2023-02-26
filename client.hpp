@@ -20,17 +20,14 @@
 #include <iostream>
 #include <utility>
 
-typedef int8_t opcode_t;
-typedef int8_t status_t;
+#define OP_REQUEST (u_int8_t)0
+#define OP_RESPONSE (u_int8_t)1
+#define STATUS_OK (u_int8_t)0
+#define STATUS_ERROR (u_int8_t)1
 
-#define OP_REQUEST (opcode_t)0
-#define OP_RESPONSE (opcode_t)1
-#define STATUS_OK (status_t)0
-#define STATUS_ERROR (status_t)1
-
-#define MAX_PAYLOAD_LEN (int)255
+#define MAX_PAYLOAD_LEN 255
 #define BUFFER_SIZE (MAX_PAYLOAD_LEN + 3)
-#define TIMEOUT (int)4  // in seconds
+#define TIMEOUT 4  // in seconds
 
 class IPKCPClient {
    public:
@@ -42,7 +39,7 @@ class IPKCPClient {
 	~IPKCPClient();
 
 	bool connect();
-	ssize_t send(std::string input) {
+	ssize_t send(const std::string& input) {
 		return (this->protocol == SOCK_STREAM) ? this->send_tcp(input)
 									    : this->send_udp(input);
 	}
@@ -59,8 +56,8 @@ class IPKCPClient {
 	struct hostent* host;
 	struct sockaddr_in addr {};
 	socklen_t addr_len = sizeof(addr);
-	ssize_t send_tcp(std::string input);
-	ssize_t send_udp(std::string input);
+	ssize_t send_tcp(const std::string& input);
+	ssize_t send_udp(const std::string& input);
 	std::string recv_tcp();
 	std::string recv_udp();
 };

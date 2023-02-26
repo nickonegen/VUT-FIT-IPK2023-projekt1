@@ -36,10 +36,10 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		exit(EXIT_FAILURE);
 	}
 
-	memset(reinterpret_cast<char*>(&(this->addr)), 0, this->addr_len);
+	memset(reinterpret_cast<char *>(&(this->addr)), 0, this->addr_len);
 	this->addr.sin_family = AF_INET;
 	memcpy(this->host->h_addr,
-		  reinterpret_cast<char*>(&(this->addr).sin_addr.s_addr),
+		  reinterpret_cast<char *>(&(this->addr).sin_addr.s_addr),
 		  this->host->h_length);
 	this->addr.sin_port = htons(this->port);
 	int vld
@@ -57,10 +57,10 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		TIMEOUT, 0
 	};
 	if (setsockopt(this->fd, SOL_SOCKET, SO_RCVTIMEO,
-				reinterpret_cast<char*>(&timeout), sizeof(timeout))
+				reinterpret_cast<char *>(&timeout), sizeof(timeout))
 		   < 0
 	    || setsockopt(this->fd, SOL_SOCKET, SO_SNDTIMEO,
-				   reinterpret_cast<char*>(&timeout), sizeof(timeout))
+				   reinterpret_cast<char *>(&timeout), sizeof(timeout))
 			 < 0) {
 		std::cerr << "!ERR! Failed to set socket timeout!" << std::endl;
 		exit(EXIT_FAILURE);
@@ -69,7 +69,7 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 
 IPKCPClient::~IPKCPClient() {
 	if (this->protocol == SOCK_STREAM) {
-		this->send(const_cast<char*>("BYE"));
+		this->send(const_cast<char *>("BYE"));
 	}
 
 	std::cout << "Closing connection..." << std::endl;
@@ -86,11 +86,10 @@ bool IPKCPClient::connect() {
 	}
 
 	/* Connect to TCP server */
-	if (::connect(this->fd, reinterpret_cast<struct sockaddr*>(&(this->addr)),
+	if (::connect(this->fd, reinterpret_cast<struct sockaddr *>(&(this->addr)),
 			    this->addr_len)
 	    < 0) {
-		std::cerr << "!ERR! Failed to connect to server!" << std::endl
-				<< errno;
+		std::cerr << "!ERR! Failed to connect to server!" << std::endl;
 		return false;
 	}
 
@@ -99,16 +98,16 @@ bool IPKCPClient::connect() {
 	return true;
 }
 
-ssize_t IPKCPClient::send_tcp(std::string input) {
+ssize_t IPKCPClient::send_tcp(const std::string &input) {
 	/* Enforce maximum length and line ending */
-	const std::string payload = trunc_payload(std::move(input));
+	const std::string payload = trunc_payload(input);
 
 	/* Create buffer */
 	std::array<char, BUFFER_SIZE> buffer{0};
 	memcpy(buffer.data(), payload.data(), payload.size() + 1);
 
 	/* Send data */
-	ssize_t write_size = write(this->fd, buffer.data(), payload.size() + 1);
+	ssize_t write_size = write(this->fd, buffer.data(), payload.size());
 
 	/* Handle errors */
 	if (write_size < 0) {
@@ -122,20 +121,20 @@ ssize_t IPKCPClient::send_tcp(std::string input) {
 	return write_size;
 }
 
-ssize_t IPKCPClient::send_udp(std::string input) {
+ssize_t IPKCPClient::send_udp(const std::string &input) {
 	/* Enforce maximum length and line ending */
-	std::string payload = trunc_payload(std::move(input));
+	std::string payload = trunc_payload(input);
 
 	/* Create buffer */
-	std::array<char, BUFFER_SIZE> buffer{0};
+	std::array<unsigned char, BUFFER_SIZE> buffer{0};
 	buffer[0] = OP_REQUEST;
-	buffer[1] = payload.size();
+	buffer[1] = static_cast<uint8_t>(payload.size());
 	memcpy(buffer.data() + 2, payload.c_str(), payload.size() + 1);
 
 	/* Send data */
 	ssize_t write_size = sendto(
 	    this->fd, buffer.data(), payload.size() + 2, 0,
-	    reinterpret_cast<struct sockaddr*>(&(this->addr)), this->addr_len);
+	    reinterpret_cast<struct sockaddr *>(&(this->addr)), this->addr_len);
 
 	/* Handle errors */
 	if (write_size < 0) {
@@ -182,7 +181,7 @@ std::string IPKCPClient::recv_udp() {
 	/* Receive data */
 	ssize_t read_size = recvfrom(
 	    this->fd, buffer.data(), BUFFER_SIZE - 1, 0,
-	    reinterpret_cast<struct sockaddr*>(&(this->addr)), &(this->addr_len));
+	    reinterpret_cast<struct sockaddr *>(&(this->addr)), &(this->addr_len));
 
 	/* Handle errors */
 	if (read_size < 0) {
@@ -200,5 +199,6 @@ std::string IPKCPClient::recv_udp() {
 		return "";
 	}
 
-	return std::string(buffer.data() + 3);
+	return (buffer[1] == STATUS_OK ? "OK:" : "ERR:")
+		  + std::string(buffer.data() + 3);
 }
