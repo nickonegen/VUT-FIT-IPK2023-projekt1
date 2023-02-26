@@ -8,6 +8,14 @@
 
 #include "client.hpp"
 
+/* Helper methods */
+std::string trunc_payload(std::string input) {
+	input.erase(std::remove(input.begin(), input.end(), '\r'), input.end());
+	input.erase(std::remove(input.begin(), input.end(), '\n'), input.end());
+	return input.substr(0, MAX_PAYLOAD_LEN - 1) + "\n";
+}
+
+/* IPKCPClient methods */
 IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	/* Set attributes */
 	this->port = port;
@@ -91,11 +99,20 @@ bool IPKCPClient::connect() {
 	return true;
 }
 
-ssize_t IPKCPClient::send_tcp(char* buffer) const {
-	ssize_t write_size = write(this->fd, buffer, strlen(buffer));
+ssize_t IPKCPClient::send_tcp(std::string input) {
+	/* Enforce maximum length and line ending */
+	const std::string payload = trunc_payload(std::move(input));
 
+	/* Create buffer */
+	std::array<char, BUFFER_SIZE> buffer{0};
+	memcpy(buffer.data(), payload.data(), payload.size() + 1);
+
+	/* Send data */
+	ssize_t write_size = write(this->fd, buffer.data(), payload.size() + 1);
+
+	/* Handle errors */
 	if (write_size < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+		if (errno == EAGAIN || errno == ETIMEDOUT) {
 			std::cerr << "!ERR! Connection timed out!" << std::endl;
 		} else {
 			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
@@ -105,13 +122,24 @@ ssize_t IPKCPClient::send_tcp(char* buffer) const {
 	return write_size;
 }
 
-ssize_t IPKCPClient::send_udp(char* buffer) {
+ssize_t IPKCPClient::send_udp(std::string input) {
+	/* Enforce maximum length and line ending */
+	std::string payload = trunc_payload(std::move(input));
+
+	/* Create buffer */
+	std::array<char, BUFFER_SIZE> buffer{0};
+	buffer[0] = OP_REQUEST;
+	buffer[1] = payload.size();
+	memcpy(buffer.data() + 2, payload.c_str(), payload.size() + 1);
+
+	/* Send data */
 	ssize_t write_size = sendto(
-	    this->fd, buffer, strlen(buffer), 0,
+	    this->fd, buffer.data(), payload.size() + 2, 0,
 	    reinterpret_cast<struct sockaddr*>(&(this->addr)), this->addr_len);
 
+	/* Handle errors */
 	if (write_size < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+		if (errno == EAGAIN || errno == ETIMEDOUT) {
 			std::cerr << "!ERR! Connection timed out!" << std::endl;
 		} else {
 			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
@@ -121,36 +149,56 @@ ssize_t IPKCPClient::send_udp(char* buffer) {
 	return write_size;
 }
 
-ssize_t IPKCPClient::recv_tcp(char* buffer) const {
-	ssize_t read_size = read(this->fd, buffer, BUFFER_SIZE - 1);
+std::string IPKCPClient::recv_tcp() {
+	/* Create buffer */
+	std::array<char, BUFFER_SIZE> buffer{0};
 
+	/* Receive data */
+	ssize_t read_size = read(this->fd, buffer.data(), BUFFER_SIZE - 1);
+
+	/* Handle errors */
 	if (read_size < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+		if (errno == EAGAIN || errno == ETIMEDOUT) {
 			std::cerr << "!ERR! Connection timed out!" << std::endl;
-		} else {
-			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+			return "";
 		}
+
+		std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+		return "";
 	}
 
 	if (read_size == 0) {
 		std::cerr << "!ERR! Server unexpectedly disconnected!" << std::endl;
+		return "";
 	}
 
-	return read_size;
+	return std::string(buffer.data());
 }
 
-ssize_t IPKCPClient::recv_udp(char* buffer) {
+std::string IPKCPClient::recv_udp() {
+	/* Create buffer */
+	std::array<char, BUFFER_SIZE> buffer{0};
+
+	/* Receive data */
 	ssize_t read_size = recvfrom(
-	    this->fd, buffer, BUFFER_SIZE - 1, 0,
+	    this->fd, buffer.data(), BUFFER_SIZE - 1, 0,
 	    reinterpret_cast<struct sockaddr*>(&(this->addr)), &(this->addr_len));
 
+	/* Handle errors */
 	if (read_size < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+		if (errno == EAGAIN || errno == ETIMEDOUT) {
 			std::cerr << "!ERR! Connection timed out!" << std::endl;
-		} else {
-			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+			return "";
 		}
+
+		std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+		return "";
 	}
 
-	return read_size;
+	if (read_size == 0) {
+		std::cerr << "!ERR! Server unexpectedly disconnected!" << std::endl;
+		return "";
+	}
+
+	return std::string(buffer.data() + 3);
 }

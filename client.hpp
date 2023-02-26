@@ -10,6 +10,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// IMPORTANT: REMOVE IOMANIP BEFORE SUBMISSION
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -25,7 +28,8 @@ typedef int8_t status_t;
 #define STATUS_OK (status_t)0
 #define STATUS_ERROR (status_t)1
 
-#define BUFFER_SIZE (int)512
+#define MAX_PAYLOAD_LEN (int)255
+#define BUFFER_SIZE (MAX_PAYLOAD_LEN + 3)
 #define TIMEOUT (int)4  // in seconds
 
 class IPKCPClient {
@@ -38,13 +42,13 @@ class IPKCPClient {
 	~IPKCPClient();
 
 	bool connect();
-	ssize_t send(char* buffer) {
-		return (this->protocol == SOCK_STREAM) ? this->send_tcp(buffer)
-									    : this->send_udp(buffer);
+	ssize_t send(std::string input) {
+		return (this->protocol == SOCK_STREAM) ? this->send_tcp(input)
+									    : this->send_udp(input);
 	}
-	ssize_t recv(char* buffer) {
-		return (this->protocol == SOCK_STREAM) ? this->recv_tcp(buffer)
-									    : this->recv_udp(buffer);
+	std::string recv() {
+		return (this->protocol == SOCK_STREAM) ? this->recv_tcp()
+									    : this->recv_udp();
 	}
 
    private:
@@ -55,10 +59,10 @@ class IPKCPClient {
 	struct hostent* host;
 	struct sockaddr_in addr {};
 	socklen_t addr_len = sizeof(addr);
-	ssize_t send_tcp(char* buffer) const;
-	ssize_t send_udp(char* buffer);
-	ssize_t recv_tcp(char* buffer) const;
-	ssize_t recv_udp(char* buffer);
+	ssize_t send_tcp(std::string input);
+	ssize_t send_udp(std::string input);
+	std::string recv_tcp();
+	std::string recv_udp();
 };
 
 #endif  // CLIENT_HPP
