@@ -34,7 +34,15 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		  reinterpret_cast<char*>(&(this->addr).sin_addr.s_addr),
 		  this->host->h_length);
 	this->addr.sin_port = htons(this->port);
-	inet_pton(AF_INET, this->hostname.c_str(), &(this->addr.sin_addr));
+	int vld
+	    = inet_pton(AF_INET, this->hostname.c_str(), &(this->addr.sin_addr));
+	if (vld == 0) {
+		std::cerr << "!ERR! Invalid address!" << std::endl;
+		exit(EXIT_FAILURE);
+	} else if (vld < 0) {
+		std::cerr << "!ERR! Failed to convert address!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	/* Set up timeout */
 	struct timeval timeout {
