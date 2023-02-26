@@ -60,25 +60,26 @@ IPKCPClient::~IPKCPClient() {
 	close(fd);
 }
 
-int IPKCPClient::connect() {
+bool IPKCPClient::connect() {
 	/* UDP is connectionless */
 	if (this->protocol == SOCK_DGRAM) {
 		std::cout << "Connected to " << this->hostname << ":" << this->port
 				<< std::endl;
-		return 0;
+		return true;
 	}
 
 	/* Connect to TCP server */
 	if (::connect(this->fd, reinterpret_cast<struct sockaddr*>(&(this->addr)),
 			    this->addr_len)
 	    < 0) {
-		std::cerr << "!ERR! Failed to connect to server!" << std::endl;
-		return -1;
+		std::cerr << "!ERR! Failed to connect to server!" << std::endl
+				<< errno;
+		return false;
 	}
 
 	std::cout << "Connected to " << this->hostname << ":" << this->port
 			<< std::endl;
-	return 0;
+	return true;
 }
 
 ssize_t IPKCPClient::send_tcp(char* buffer) const {

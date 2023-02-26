@@ -73,7 +73,9 @@ int main(int argc, char* argv[]) {
 				    protocol == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
 
 	/* Connect to server */
-	client.connect();
+	if (!client.connect()) {
+		return EXIT_FAILURE;
+	}
 
 	/* Communicate */
 	// TODO: Put this into separate function

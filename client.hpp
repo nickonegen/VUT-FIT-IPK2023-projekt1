@@ -36,7 +36,7 @@ class IPKCPClient {
 	IPKCPClient(const IPKCPClient&) = default;
 	~IPKCPClient();
 
-	int connect();
+	bool connect();
 	ssize_t send(char* buffer) {
 		return (this->protocol == SOCK_STREAM) ? this->send_tcp(buffer)
 									    : this->send_udp(buffer);
