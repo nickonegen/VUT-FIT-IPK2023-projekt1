@@ -3,6 +3,7 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>

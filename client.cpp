@@ -34,6 +34,7 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		  reinterpret_cast<char*>(&(this->addr).sin_addr.s_addr),
 		  this->host->h_length);
 	this->addr.sin_port = htons(this->port);
+	inet_pton(AF_INET, this->hostname.c_str(), &(this->addr.sin_addr));
 
 	/* Set up timeout */
 	struct timeval timeout {
