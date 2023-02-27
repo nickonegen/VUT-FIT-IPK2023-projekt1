@@ -78,11 +78,16 @@ int main(int argc, char* argv[]) {
 	}
 
 	/* Communicate */
-	// TODO: Put this into separate function
-	while (true) {
+	while (client.state == IPKCPCState::UP) {
 		/* Read input */
 		std::string input;
 		std::getline(std::cin, input);
+
+		/* SIGINT handler */
+		if (quit.load()) {
+			client.disconnect();
+			break;
+		}
 
 		/* Send input to server */
 		if (client.send(input) < 0) {
@@ -97,15 +102,11 @@ int main(int argc, char* argv[]) {
 
 		/* Print response */
 		cout << response << endl;
-		if (response == "BYE") {
-			return EXIT_SUCCESS;
-		}
+	}
 
-		/* Required for proper signal handling */
-		sleep(1);
-		if (quit.load()) {
-			break;
-		}
+	if (client.state != IPKCPCState::DOWN) {
+		cout << "!ERR! Server unexpectedly disconnected!" << endl;
+		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;

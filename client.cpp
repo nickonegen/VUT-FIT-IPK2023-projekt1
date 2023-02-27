@@ -17,6 +17,8 @@ std::string trunc_payload(std::string input) {
 
 /* IPKCPClient methods */
 IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
+	this->state = IPKCPCState::INIT;
+
 	/* Set attributes */
 	this->port = port;
 	this->hostname = std::move(hostname);
@@ -65,14 +67,39 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 		std::cerr << "!ERR! Failed to set socket timeout!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	this->state = IPKCPCState::READY;
+}
+
+void IPKCPClient::disconnect() {
+	/* TCP */
+	if (this->protocol == SOCK_STREAM) {
+		/* Client is up - graceful exit */
+		if (this->state == IPKCPCState::UP) {
+			std::cout << "BYE" << std::endl;
+			this->send("BYE");
+			std::cout << this->recv() << std::endl;
+			return;
+		}
+
+		/* Client is already expecting BYE */
+		if (this->state == IPKCPCState::EXPECT_BYE) {
+			std::cout << this->recv() << std::endl;
+			return;
+		}
+
+		/* Non-connected client - nothing to do */
+		return;
+	}
+
+	/* UDP */
+	if (this->protocol == SOCK_DGRAM) {
+		this->state = IPKCPCState::DOWN;
+		return;
+	}
 }
 
 IPKCPClient::~IPKCPClient() {
-	if (this->protocol == SOCK_STREAM) {
-		this->send(const_cast<char *>("BYE"));
-	}
-
-	std::cout << "Closing connection..." << std::endl;
 	shutdown(this->fd, SHUT_RDWR);
 	close(fd);
 }
@@ -82,6 +109,7 @@ bool IPKCPClient::connect() {
 	if (this->protocol == SOCK_DGRAM) {
 		std::cout << "Connected to " << this->hostname << ":" << this->port
 				<< std::endl;
+		this->state = IPKCPCState::UP;
 		return true;
 	}
 
@@ -95,6 +123,7 @@ bool IPKCPClient::connect() {
 
 	std::cout << "Connected to " << this->hostname << ":" << this->port
 			<< std::endl;
+	this->state = IPKCPCState::UP;
 	return true;
 }
 
@@ -105,6 +134,11 @@ ssize_t IPKCPClient::send_tcp(const std::string &input) {
 	/* Create buffer */
 	std::array<char, BUFFER_SIZE> buffer{0};
 	memcpy(buffer.data(), payload.data(), payload.size() + 1);
+
+	/* Set EXPECT_BYE state if message is "BYE" */
+	if (strncmp(buffer.data(), "BYE", 3) == 0) {
+		this->state = IPKCPCState::EXPECT_BYE;
+	}
 
 	/* Send data */
 	ssize_t write_size = write(this->fd, buffer.data(), payload.size());
@@ -167,8 +201,21 @@ std::string IPKCPClient::recv_tcp() {
 	}
 
 	if (read_size == 0) {
-		std::cerr << "!ERR! Server unexpectedly disconnected!" << std::endl;
+		this->state = IPKCPCState::ERROR;
 		return "";
+	}
+
+	/* Recieved "BYE" */
+	if (strncmp(buffer.data(), "BYE", 3) == 0) {
+		/* Expected */
+		if (this->state == IPKCPCState::EXPECT_BYE) {
+			this->state = IPKCPCState::DOWN;
+			return "BYE";
+		}
+
+		/* Unexpected */
+		this->state = IPKCPCState::ERROR;
+		return "BYE";
 	}
 
 	return std::string(buffer.data());

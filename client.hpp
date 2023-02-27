@@ -29,6 +29,15 @@
 #define BUFFER_SIZE (MAX_PAYLOAD_LEN + 3)
 #define TIMEOUT 4  // in seconds
 
+enum class IPKCPCState {
+	INIT,
+	READY,
+	UP,
+	EXPECT_BYE,
+	DOWN,
+	ERROR,
+};
+
 class IPKCPClient {
    public:
 	IPKCPClient(int port, std::string hostname, int protocol);
@@ -39,6 +48,8 @@ class IPKCPClient {
 	~IPKCPClient();
 
 	bool connect();
+	void disconnect();
+	IPKCPCState state;
 	ssize_t send(const std::string& input) {
 		return (this->protocol == SOCK_STREAM) ? this->send_tcp(input)
 									    : this->send_udp(input);
