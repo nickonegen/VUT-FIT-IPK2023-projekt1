@@ -1,4 +1,7 @@
-// IPKCP Client header file
+/**
+ * @file client.hpp
+ * @brief Header file for the IPKCP Client
+ */
 
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
@@ -10,7 +13,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// IMPORTANT: REMOVE IOMANIP BEFORE SUBMISSION
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -29,15 +31,22 @@
 #define BUFFER_SIZE (MAX_PAYLOAD_LEN + 3)
 #define TIMEOUT 4  // in seconds
 
+/**
+ * @brief Enumeration to represent the possible states of the client
+ */
 enum class IPKCPCState {
-	INIT,
-	READY,
-	UP,
-	EXPECT_BYE,
-	DOWN,
-	ERROR,
+	INIT,	  /**< Initial state */
+	READY,	  /**< Ready to connect */
+	UP,		  /**< Connected */
+	EXPECT_BYE, /**< Expecting BYE from server */
+	DOWN,	  /**< Disconnected */
+	ERROR,	  /**< Error */
 };
 
+/**
+ * @class IPKCPClient
+ * @brief Class representing the IPKCP Client
+ */
 class IPKCPClient {
    public:
 	IPKCPClient(int port, std::string hostname, int protocol);
@@ -48,8 +57,21 @@ class IPKCPClient {
 	~IPKCPClient();
 
 	bool connect();
-	void disconnect();
-	IPKCPCState state;
+	std::string disconnect();
+
+	int port;			   /**< Port to connect to */
+	IPKCPCState state;	   /**< State of the client */
+	std::string hostname;  /**< Hostname to connect to */
+	std::string error_msg; /**< Error message (if any) */
+
+	/**
+	 * @brief Send a message to the server
+	 *
+	 * Sends a message to the server - abstraction over send_tcp and send_udp.
+	 *
+	 * @param input - Message to send
+	 * @return ssize_t - Number of bytes sent
+	 */
 	ssize_t send(const std::string& input) {
 		if (this->state != IPKCPCState::UP) {
 			std::cerr << "!ERR! Client is not connected!" << std::endl;
@@ -58,19 +80,26 @@ class IPKCPClient {
 		return (this->protocol == SOCK_STREAM) ? this->send_tcp(input)
 									    : this->send_udp(input);
 	}
+
+	/**
+	 * @brief Receive a message from the server
+	 *
+	 * Receives a message from the server - abstraction over recv_tcp and
+	 * recv_udp.
+	 *
+	 * @return std::string - Message received
+	 */
 	std::string recv() {
 		return (this->protocol == SOCK_STREAM) ? this->recv_tcp()
 									    : this->recv_udp();
 	}
 
    private:
-	int fd;
-	int port;
-	int protocol;
-	std::string hostname;
-	struct hostent* host;
-	struct sockaddr_in addr {};
-	socklen_t addr_len = sizeof(addr);
+	int fd;			  /**< Socket file descriptor */
+	int protocol;		  /**< Protocol to use (SOCK_STREAM or SOCK_DGRAM) */
+	struct hostent* host; /**< Host entity */
+	struct sockaddr_in addr {};		/**< Socket address */
+	socklen_t addr_len = sizeof(addr); /**< Socket address length */
 	ssize_t send_tcp(const std::string& input);
 	ssize_t send_udp(const std::string& input);
 	std::string recv_tcp();

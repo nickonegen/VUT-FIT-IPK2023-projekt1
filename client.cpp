@@ -2,20 +2,41 @@
  * @file client.cpp
  * @author Onegen Something <xonege99@vutbr.cz>
  * @brief IPKCP Client
- * @date 2023-??-??
+ * @date 2023-02-28
  *
  */
 
 #include "client.hpp"
 
-/* Helper methods */
+/* ==== Helper methods ==== */
+
+/**
+ * @brief Truncates and cleans up the string
+ *
+ * Truncates the string to MAX_PAYLOAD_LEN and removes all newline characters
+ * from it (removing carriage returns for Windows compatibility). Returns the
+ * truncated string with a newline character at the end in upper case.
+ *
+ * @param input - String to be truncated
+ * @return std::string Cleaned up string
+ */
 std::string trunc_payload(std::string input) {
 	input.erase(std::remove(input.begin(), input.end(), '\r'), input.end());
 	input.erase(std::remove(input.begin(), input.end(), '\n'), input.end());
 	return input.substr(0, MAX_PAYLOAD_LEN - 1) + "\n";
 }
 
-/* IPKCPClient methods */
+/* ==== IPKCPClient methods ==== */
+
+/**
+ * @brief Construct a new IPKCPClient object
+ *
+ * Initializes the client and sets up the socket. Exits the program on error.
+ *
+ * @param port - Port to connect to
+ * @param hostname - Hostname to connect to
+ * @param protocol - Protocol to use; also controls the connection variant
+ */
 IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	this->state = IPKCPCState::INIT;
 
@@ -27,14 +48,16 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	/* Resolve hostname */
 	this->host = gethostbyname(this->hostname.c_str());
 	if (this->host == NULL) {
-		std::cerr << "!ERR! Failed to resolve hostname!" << std::endl;
+		this->error_msg = "Failed to resolve hostname!";
+		this->state = IPKCPCState::ERROR;
 		exit(EXIT_FAILURE);
 	}
 
 	/* Create socket */
 	this->fd = socket(AF_INET, this->protocol, 0);
 	if (this->fd < 0) {
-		std::cerr << "!ERR! Failed to create socket!" << std::endl;
+		this->error_msg = "Failed to create socket!";
+		this->state = IPKCPCState::ERROR;
 		exit(EXIT_FAILURE);
 	}
 
@@ -47,10 +70,12 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	int vld
 	    = inet_pton(AF_INET, this->hostname.c_str(), &(this->addr.sin_addr));
 	if (vld == 0) {
-		std::cerr << "!ERR! Invalid address!" << std::endl;
+		this->error_msg = "Invalid address!";
+		this->state = IPKCPCState::ERROR;
 		exit(EXIT_FAILURE);
 	} else if (vld < 0) {
-		std::cerr << "!ERR! Failed to convert address!" << std::endl;
+		this->error_msg = "Failed to convert address!";
+		this->state = IPKCPCState::ERROR;
 		exit(EXIT_FAILURE);
 	}
 
@@ -64,69 +89,92 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	    || setsockopt(this->fd, SOL_SOCKET, SO_SNDTIMEO,
 				   reinterpret_cast<char *>(&timeout), sizeof(timeout))
 			 < 0) {
-		std::cerr << "!ERR! Failed to set socket timeout!" << std::endl;
+		this->error_msg = "Failed to set socket timeout!";
+		this->state = IPKCPCState::ERROR;
 		exit(EXIT_FAILURE);
 	}
 
 	this->state = IPKCPCState::READY;
 }
 
-void IPKCPClient::disconnect() {
+/**
+ * @brief Opens a connection to the server
+ *
+ * @return true - Successfully connected
+ * @return false - Failed to connect (see error_msg for details)
+ */
+bool IPKCPClient::connect() {
+	/* UDP */
+	if (this->protocol == SOCK_DGRAM) {
+		this->state = IPKCPCState::UP;
+		return true;
+	}
+
+	/* TCP */
+	if (::connect(this->fd, reinterpret_cast<struct sockaddr *>(&(this->addr)),
+			    this->addr_len)
+	    < 0) {
+		this->error_msg = "Failed to connect to server!";
+		this->state = IPKCPCState::ERROR;
+		return false;
+	}
+
+	this->state = IPKCPCState::UP;
+	return true;
+}
+
+/**
+ * @brief Closes the connection to the server
+ *
+ * Proper closing of the connection. When using the textual variant (TCP), the
+ * client sends a BYE message and waits for a response. When using the binary
+ * variant (UDP), the client simply sets the state to DOWN. Keep in mind that
+ * the socket is closed by the destructor.
+ *
+ * @return std::string - Final message from the server (TCP only)
+ */
+std::string IPKCPClient::disconnect() {
 	/* TCP */
 	if (this->protocol == SOCK_STREAM) {
 		/* Client is up - graceful exit */
 		if (this->state == IPKCPCState::UP) {
-			std::cout << "BYE" << std::endl;
-			this->send("BYE");
-			std::cout << this->recv() << std::endl;
-			return;
+			this->send("BYE");	  // sets EXPECT_BYE state
+			return this->recv();  // sets DOWN state
 		}
 
 		/* Client is already expecting BYE */
 		if (this->state == IPKCPCState::EXPECT_BYE) {
-			std::cout << this->recv() << std::endl;
-			return;
+			return this->recv();
 		}
 
 		/* Non-connected client - nothing to do */
-		return;
+		return "";
 	}
 
 	/* UDP */
 	if (this->protocol == SOCK_DGRAM) {
 		this->state = IPKCPCState::DOWN;
-		return;
+		return "";
 	}
+
+	return "";
 }
 
+/**
+ * @brief Destroy the IPKCPClient object (close socket)
+ *
+ */
 IPKCPClient::~IPKCPClient() {
 	shutdown(this->fd, SHUT_RDWR);
 	close(fd);
 }
 
-bool IPKCPClient::connect() {
-	/* UDP is connectionless */
-	if (this->protocol == SOCK_DGRAM) {
-		std::cout << "Connected to " << this->hostname << ":" << this->port
-				<< std::endl;
-		this->state = IPKCPCState::UP;
-		return true;
-	}
-
-	/* Connect to TCP server */
-	if (::connect(this->fd, reinterpret_cast<struct sockaddr *>(&(this->addr)),
-			    this->addr_len)
-	    < 0) {
-		std::cerr << "!ERR! Failed to connect to server!" << std::endl;
-		return false;
-	}
-
-	std::cout << "Connected to " << this->hostname << ":" << this->port
-			<< std::endl;
-	this->state = IPKCPCState::UP;
-	return true;
-}
-
+/**
+ * @brief Sends a textual message to the remote host.
+ *
+ * @param input - Message to send
+ * @return ssize_t - Number of bytes sent
+ */
 ssize_t IPKCPClient::send_tcp(const std::string &input) {
 	/* Enforce maximum length and line ending */
 	const std::string payload = trunc_payload(input);
@@ -146,15 +194,22 @@ ssize_t IPKCPClient::send_tcp(const std::string &input) {
 	/* Handle errors */
 	if (write_size < 0) {
 		if (errno == EAGAIN || errno == ETIMEDOUT) {
-			std::cerr << "!ERR! Connection timed out!" << std::endl;
+			this->error_msg = "Connection timed out!";
 		} else {
-			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+			this->error_msg = "Failed to send data to server!";
 		}
+		this->state = IPKCPCState::ERROR;
 	}
 
 	return write_size;
 }
 
+/**
+ * @brief Sends a binary message to the remote host.
+ *
+ * @param input - Message to send
+ * @return ssize_t - Number of bytes sent
+ */
 ssize_t IPKCPClient::send_udp(const std::string &input) {
 	/* Enforce maximum length and line ending */
 	std::string payload = trunc_payload(input);
@@ -173,15 +228,21 @@ ssize_t IPKCPClient::send_udp(const std::string &input) {
 	/* Handle errors */
 	if (write_size < 0) {
 		if (errno == EAGAIN || errno == ETIMEDOUT) {
-			std::cerr << "!ERR! Connection timed out!" << std::endl;
+			this->error_msg = "Connection timed out!";
 		} else {
-			std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+			this->error_msg = "Failed to send data to server!";
 		}
+		this->state = IPKCPCState::ERROR;
 	}
 
 	return write_size;
 }
 
+/**
+ * @brief Receives a textual message from the remote host.
+ *
+ * @return std::string - Received message
+ */
 std::string IPKCPClient::recv_tcp() {
 	/* Create buffer */
 	std::array<char, BUFFER_SIZE> buffer{0};
@@ -192,16 +253,17 @@ std::string IPKCPClient::recv_tcp() {
 	/* Handle errors */
 	if (read_size < 0) {
 		if (errno == EAGAIN || errno == ETIMEDOUT) {
-			std::cerr << "!ERR! Connection timed out!" << std::endl;
+			this->error_msg = "Connection timed out!";
 			return "";
 		}
 
-		std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+		this->error_msg = "Failed to send data to server!";
 		return "";
 	}
 
 	if (read_size == 0) {
 		this->state = IPKCPCState::ERROR;
+		this->error_msg = "Server unexpectedly disconnected!";
 		return "";
 	}
 
@@ -215,12 +277,18 @@ std::string IPKCPClient::recv_tcp() {
 
 		/* Unexpected */
 		this->state = IPKCPCState::ERROR;
+		this->error_msg = "Server unexpectedly disconnected!";
 		return "BYE";
 	}
 
 	return std::string(buffer.data());
 }
 
+/**
+ * @brief Receives a binary message from the remote host.
+ *
+ * @return std::string - Received message
+ */
 std::string IPKCPClient::recv_udp() {
 	/* Create buffer */
 	std::array<char, BUFFER_SIZE> buffer{0};
@@ -233,16 +301,16 @@ std::string IPKCPClient::recv_udp() {
 	/* Handle errors */
 	if (read_size < 0) {
 		if (errno == EAGAIN || errno == ETIMEDOUT) {
-			std::cerr << "!ERR! Connection timed out!" << std::endl;
+			this->error_msg = "Connection timed out!";
 			return "";
 		}
 
-		std::cerr << "!ERR! Failed to send data to server!" << std::endl;
+		this->error_msg = "Failed to send data to server!";
 		return "";
 	}
 
 	if (read_size == 0) {
-		std::cerr << "!ERR! Server unexpectedly disconnected!" << std::endl;
+		this->error_msg = "Server unexpectedly disconnected!";
 		return "";
 	}
 
