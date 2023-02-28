@@ -51,6 +51,10 @@ class IPKCPClient {
 	void disconnect();
 	IPKCPCState state;
 	ssize_t send(const std::string& input) {
+		if (this->state != IPKCPCState::UP) {
+			std::cerr << "!ERR! Client is not connected!" << std::endl;
+			return -1;
+		};
 		return (this->protocol == SOCK_STREAM) ? this->send_tcp(input)
 									    : this->send_udp(input);
 	}
