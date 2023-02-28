@@ -122,7 +122,14 @@ int main(int argc, char* argv[]) {
 
 		/* SIGINT handler */
 		if (quit.load()) {
-			client.disconnect();
+			// This is just to inform the user that BYE message
+			// will be sent to the server
+			if (protocol == "tcp") {
+				cout << "BYE" << endl;
+			}
+
+			/* Disconnect from server */
+			cout << client.disconnect() << endl;
 			break;
 		}
 
