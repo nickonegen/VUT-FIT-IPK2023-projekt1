@@ -107,6 +107,13 @@ bool IPKCPClient::connect() {
 	/* UDP */
 	if (this->protocol == SOCK_DGRAM) {
 		this->state = IPKCPCState::UP;
+		auto sent = this->send("(+ 1 1)");
+		if (sent == 0 || (this->recv()).empty()) {
+			this->error_msg = "Failed to verify connection to server!";
+			this->state = IPKCPCState::ERROR;
+			return false;
+		}
+
 		return true;
 	}
 
