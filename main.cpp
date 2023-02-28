@@ -2,12 +2,48 @@
  * @file main.cpp
  * @author Onegen Something <xonege99@vutbr.cz>
  * @brief Main logic of IPKCP Client
- * @date 2023-??-??
+ * @date 2023-02-28
  *
  */
 
-#include "main.hpp"
+#include <atomic>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
+#include "client.hpp"
+
+/**
+ * @brief SIGINT Flag
+ *
+ * A flag indicating whether SIGINT was received, used to gracefully
+ * terminate the client.
+ */
+std::atomic<bool> quit(false);
+
+/**
+ * @brief Signal handling function
+ *
+ * Sets the quit flag to true, which is used to gracefully terminate the
+ * client.
+ *
+ * @param signal - Signal number
+ */
+void signal_handler(int signal) {
+	(void)signal;
+	quit.store(true);
+}
+
+/**
+ * @brief Main function
+ *
+ * Parses command line arguments, creates a client and connects to the
+ * server. Then it reads input from stdin and sends it to the server.
+ *
+ * @return int - Exit code
+ */
 int main(int argc, char* argv[]) {
 	using std::cerr;
 	using std::cout;
@@ -73,7 +109,8 @@ int main(int argc, char* argv[]) {
 				    protocol == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
 
 	/* Connect to server */
-	if (!client.connect()) {
+	if (!client.connect() || client.state == IPKCPCState::ERROR) {
+		cerr << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -91,21 +128,22 @@ int main(int argc, char* argv[]) {
 
 		/* Send input to server */
 		if (client.send(input) < 0) {
-			return EXIT_FAILURE;
+			break;
 		}
 
 		/* Receive response from server */
 		std::string response = client.recv();
 		if (response.empty()) {
-			return EXIT_FAILURE;
+			break;
 		}
 
 		/* Print response */
 		cout << response << endl;
 	}
 
+	/* Print error message */
 	if (client.state != IPKCPCState::DOWN) {
-		cout << "!ERR! Server unexpectedly disconnected!" << endl;
+		cout << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}
 
