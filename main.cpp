@@ -109,13 +109,13 @@ int main(int argc, char* argv[]) {
 				    protocol == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
 
 	/* Connect to server */
-	if (!client.connect() || client.state == IPKCPCState::ERROR) {
+	if (!client.connect() || client.get_state() == IPKCPCState::ERROR) {
 		cerr << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}
 
 	/* Communicate */
-	while (client.state == IPKCPCState::UP) {
+	while (client.get_state() == IPKCPCState::UP) {
 		/* Read input */
 		std::string input;
 		std::getline(std::cin, input);
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	/* Print error message */
-	if (client.state != IPKCPCState::DOWN) {
+	if (client.get_state() != IPKCPCState::DOWN) {
 		cout << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}

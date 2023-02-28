@@ -56,13 +56,44 @@ class IPKCPClient {
 	IPKCPClient(const IPKCPClient&) = default;
 	~IPKCPClient();
 
+	/* ==== Public Variables ==== */
+
+	std::string error_msg; /**< Error message (if any) */
+
+	/* ==== Getters ==== */
+
+	/**
+	 * @brief Get the current state of the client
+	 *
+	 * @return IPKCPCState - Current state of the client
+	 */
+	IPKCPCState get_state() const { return this->state; }
+
+	/**
+	 * @brief Get the port the client is connected to
+	 *
+	 * @return int - Port the client is connected to
+	 */
+	int get_port() const { return this->port; }
+
+	/**
+	 * @brief Get the hostname the client is connected to
+	 *
+	 * @return std::string - Hostname the client is connected to
+	 */
+	std::string get_hostname() const { return this->hostname; }
+
+	/**
+	 * @brief Get the protocol the client is using
+	 *
+	 * @return int - Protocol the client is using
+	 */
+	int get_protocol() const { return this->protocol; }
+
+	/* ==== Public Methods ==== */
+
 	bool connect();
 	std::string disconnect();
-
-	int port;			   /**< Port to connect to */
-	IPKCPCState state;	   /**< State of the client */
-	std::string hostname;  /**< Hostname to connect to */
-	std::string error_msg; /**< Error message (if any) */
 
 	/**
 	 * @brief Send a message to the server
@@ -95,11 +126,19 @@ class IPKCPClient {
 	}
 
    private:
+	/* ==== Private Variables ==== */
+
 	int fd;			  /**< Socket file descriptor */
+	int port;			  /**< Port to connect to */
 	int protocol;		  /**< Protocol to use (SOCK_STREAM or SOCK_DGRAM) */
+	IPKCPCState state;	  /**< State of the client */
+	std::string hostname; /**< Hostname to connect to */
 	struct hostent* host; /**< Host entity */
 	struct sockaddr_in addr {};		/**< Socket address */
 	socklen_t addr_len = sizeof(addr); /**< Socket address length */
+
+	/* ==== Private Methods ==== */
+
 	ssize_t send_tcp(const std::string& input);
 	ssize_t send_udp(const std::string& input);
 	std::string recv_tcp();
