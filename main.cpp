@@ -107,29 +107,33 @@ int main(int argc, char* argv[]) {
 	/* Create client */
 	IPKCPClient client(port, hostname,
 				    protocol == "tcp" ? SOCK_STREAM : SOCK_DGRAM);
+	if (client.get_state() == IPKCPCState::ERRORED) {
+		cerr << "!ERR! " << client.error_msg << endl;
+		return EXIT_FAILURE;
+	}
 
 	/* Connect to server */
-	if (!client.connect() || client.get_state() == IPKCPCState::ERROR) {
+	if (!client.connect() || client.get_state() == IPKCPCState::ERRORED) {
 		cerr << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}
 
 	/* Communicate */
 	while (client.get_state() == IPKCPCState::UP) {
-		/* Read input */
 		std::string input;
-		std::getline(std::cin, input);
 
-		/* SIGINT handler */
+		if (std::cin.eof()) {
+			/* Reached EOF */
+			quit.store(true);
+		} else {
+			/* Read input */
+			std::getline(std::cin, input);
+		}
+
+		/* Quit on SIGINT or EOF */
 		if (quit.load()) {
-			// This is just to inform the user that BYE message
-			// will be sent to the server
-			if (protocol == "tcp") {
-				cout << "BYE" << endl;
-			}
-
 			/* Disconnect from server */
-			cout << client.disconnect() << endl;
+			cout << client.disconnect();
 			break;
 		}
 
@@ -145,7 +149,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		/* Print response */
-		cout << response << endl;
+		cout << response;
 	}
 
 	/* Print error message */

@@ -22,10 +22,10 @@
 #include <iostream>
 #include <utility>
 
-#define OP_REQUEST (u_int8_t)0
-#define OP_RESPONSE (u_int8_t)1
-#define STATUS_OK (u_int8_t)0
-#define STATUS_ERROR (u_int8_t)1
+#define OP_REQUEST (uint8_t)0
+#define OP_RESPONSE (uint8_t)1
+#define STATUS_OK (uint8_t)0
+#define STATUS_ERROR (uint8_t)1
 
 #define MAX_PAYLOAD_LEN 255
 #define BUFFER_SIZE (MAX_PAYLOAD_LEN + 3)
@@ -40,7 +40,7 @@ enum class IPKCPCState {
 	UP,		  /**< Connected */
 	EXPECT_BYE, /**< Expecting BYE from server */
 	DOWN,	  /**< Disconnected */
-	ERROR,	  /**< Error */
+	ERRORED,	  /**< Error */
 };
 
 /**

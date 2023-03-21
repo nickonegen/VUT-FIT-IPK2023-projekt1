@@ -64,7 +64,7 @@ clean:
 	${RM} ${TARGET}
 
 zip:
-	zip -q -r ${ZIPNAME}.zip *.cpp *.hpp Makefile
+	zip -v -r ${ZIPNAME} .* *
 
 format:
 	clang-format -i *.cpp *.hpp

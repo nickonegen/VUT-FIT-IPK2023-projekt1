@@ -23,6 +23,8 @@
 std::string trunc_payload(std::string input) {
 	input.erase(std::remove(input.begin(), input.end(), '\r'), input.end());
 	input.erase(std::remove(input.begin(), input.end(), '\n'), input.end());
+	std::transform(input.begin(), input.end(), input.begin(),
+				[](unsigned char c) { return std::toupper(c); });
 	return input.substr(0, MAX_PAYLOAD_LEN - 1) + "\n";
 }
 
@@ -45,20 +47,27 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	this->hostname = std::move(hostname);
 	this->protocol = protocol;
 
+	/* Verify port number */
+	if (this->port < 1 || this->port > 65535) {
+		this->error_msg = "Invalid port number!";
+		this->state = IPKCPCState::ERRORED;
+		return;
+	}
+
 	/* Resolve hostname */
 	this->host = gethostbyname(this->hostname.c_str());
 	if (this->host == NULL) {
 		this->error_msg = "Failed to resolve hostname!";
-		this->state = IPKCPCState::ERROR;
-		exit(EXIT_FAILURE);
+		this->state = IPKCPCState::ERRORED;
+		return;
 	}
 
 	/* Create socket */
 	this->fd = socket(AF_INET, this->protocol, 0);
 	if (this->fd < 0) {
 		this->error_msg = "Failed to create socket!";
-		this->state = IPKCPCState::ERROR;
-		exit(EXIT_FAILURE);
+		this->state = IPKCPCState::ERRORED;
+		return;
 	}
 
 	memset(reinterpret_cast<char *>(&(this->addr)), 0, this->addr_len);
@@ -71,12 +80,12 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 	    = inet_pton(AF_INET, this->hostname.c_str(), &(this->addr.sin_addr));
 	if (vld == 0) {
 		this->error_msg = "Invalid address!";
-		this->state = IPKCPCState::ERROR;
-		exit(EXIT_FAILURE);
+		this->state = IPKCPCState::ERRORED;
+		return;
 	} else if (vld < 0) {
 		this->error_msg = "Failed to convert address!";
-		this->state = IPKCPCState::ERROR;
-		exit(EXIT_FAILURE);
+		this->state = IPKCPCState::ERRORED;
+		return;
 	}
 
 	/* Set up timeout */
@@ -90,8 +99,8 @@ IPKCPClient::IPKCPClient(int port, std::string hostname, int protocol) {
 				   reinterpret_cast<char *>(&timeout), sizeof(timeout))
 			 < 0) {
 		this->error_msg = "Failed to set socket timeout!";
-		this->state = IPKCPCState::ERROR;
-		exit(EXIT_FAILURE);
+		this->state = IPKCPCState::ERRORED;
+		return;
 	}
 
 	this->state = IPKCPCState::READY;
@@ -110,7 +119,7 @@ bool IPKCPClient::connect() {
 		auto sent = this->send("(+ 1 1)");
 		if (sent == 0 || (this->recv()).empty()) {
 			this->error_msg = "Failed to verify connection to server!";
-			this->state = IPKCPCState::ERROR;
+			this->state = IPKCPCState::ERRORED;
 			return false;
 		}
 
@@ -122,7 +131,7 @@ bool IPKCPClient::connect() {
 			    this->addr_len)
 	    < 0) {
 		this->error_msg = "Failed to connect to server!";
-		this->state = IPKCPCState::ERROR;
+		this->state = IPKCPCState::ERRORED;
 		return false;
 	}
 
@@ -172,6 +181,10 @@ std::string IPKCPClient::disconnect() {
  *
  */
 IPKCPClient::~IPKCPClient() {
+	if (this->state == IPKCPCState::UP) {
+		this->disconnect();
+	}
+
 	shutdown(this->fd, SHUT_RDWR);
 	close(fd);
 }
@@ -205,7 +218,7 @@ ssize_t IPKCPClient::send_tcp(const std::string &input) {
 		} else {
 			this->error_msg = "Failed to send data to server!";
 		}
-		this->state = IPKCPCState::ERROR;
+		this->state = IPKCPCState::ERRORED;
 	}
 
 	return write_size;
@@ -229,7 +242,8 @@ ssize_t IPKCPClient::send_udp(const std::string &input) {
 
 	/* Send data */
 	ssize_t write_size = sendto(
-	    this->fd, buffer.data(), payload.size() + 2, 0,
+	    this->fd, reinterpret_cast<const char *>(buffer.data()),
+	    payload.size() + 2, 0,
 	    reinterpret_cast<struct sockaddr *>(&(this->addr)), this->addr_len);
 
 	/* Handle errors */
@@ -239,7 +253,7 @@ ssize_t IPKCPClient::send_udp(const std::string &input) {
 		} else {
 			this->error_msg = "Failed to send data to server!";
 		}
-		this->state = IPKCPCState::ERROR;
+		this->state = IPKCPCState::ERRORED;
 	}
 
 	return write_size;
@@ -269,7 +283,7 @@ std::string IPKCPClient::recv_tcp() {
 	}
 
 	if (read_size == 0) {
-		this->state = IPKCPCState::ERROR;
+		this->state = IPKCPCState::ERRORED;
 		this->error_msg = "Server unexpectedly disconnected!";
 		return "";
 	}
@@ -279,13 +293,12 @@ std::string IPKCPClient::recv_tcp() {
 		/* Expected */
 		if (this->state == IPKCPCState::EXPECT_BYE) {
 			this->state = IPKCPCState::DOWN;
-			return "BYE";
+			return std::string(buffer.data());
 		}
 
 		/* Unexpected */
-		this->state = IPKCPCState::ERROR;
+		this->state = IPKCPCState::ERRORED;
 		this->error_msg = "Server unexpectedly disconnected!";
-		return "BYE";
 	}
 
 	return std::string(buffer.data());
@@ -322,5 +335,5 @@ std::string IPKCPClient::recv_udp() {
 	}
 
 	return (buffer[1] == STATUS_OK ? "OK:" : "ERR:")
-		  + std::string(buffer.data() + 3);
+		  + std::string(buffer.data() + 3) + '\n';
 }
