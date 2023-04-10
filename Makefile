@@ -3,15 +3,6 @@
 # IPKCP Makefile
 # @author Onegen Something <xonege99@vutbr.cz>
 #
-# Usage:
-#   - `make` or `make all` or `make release` to build the project
-#   - `make debug` to build the project with debug flags
-#   - `make clean` to remove built binaries
-#   - `make format` to format the source code
-#   - `make lint` to lint the source code
-#   - `make zip` to create a zip archive of the project
-#   - `make help` to show Makefile usage
-#
 ###############################################################################
 
 TARGET                 = ipkcpc
