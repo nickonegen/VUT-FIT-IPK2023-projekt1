@@ -137,6 +137,11 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 
+		/* Skip empty input */
+		if (input.empty()) {
+			continue;
+		}
+
 		/* Send input to server */
 		if (client.send(input) < 0) {
 			break;
@@ -154,7 +159,7 @@ int main(int argc, char* argv[]) {
 
 	/* Print error message */
 	if (client.get_state() != IPKCPCState::DOWN) {
-		cout << "!ERR! " << client.error_msg << endl;
+		cerr << "!ERR! " << client.error_msg << endl;
 		return EXIT_FAILURE;
 	}
 
