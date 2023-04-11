@@ -4,7 +4,7 @@
 
 ⚠️ **Zverejnené pre archívne účely — nekopírujte, nula by Vás mrzela. Za nič také nenesiem žiadnu zodpovednosť!** Všetky odovzdané projekty prechádzajú kontrolou plagiátorstva, pri ktorej sa porovnávajú aj s dávnejšie odovzdanými riešeniami.
 
-Hodnotenie: 17 / 20<br>（no tests a málo teórie v docs...oh well...）
+Hodnotenie: 17 / 20<br>（žiadne testy (-2) a málo teórie v docs (-1)...oh well...）
 
 Zadanie: [ZADANI.md](ZADANI.md), originál [FITGit README](https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/commit/d34e41c447bf9e82ed63b90695f8253e22b1a93c/Project%201/README.md)
 
