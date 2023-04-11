@@ -1,17 +1,12 @@
 # IPK PROJEKT 1, FIT VUT 2023 #
 
-*Prvý projekt (sieťový kalkulačný protokol) z predmetu Počítačové komunikácie a siete (IPK), štvrtý semester bakalárskeho štúdia BIT na FIT VUT/BUT, ak.rok 2022/2023*
+*Prvý projekt (klient pre sieťový kalkulačný protokol) z predmetu Počítačové komunikácie a siete (IPK), štvrtý semester bakalárskeho štúdia BIT na FIT VUT/BUT, ak.rok 2022/2023*
 
-🔒 **Aktívny súkromný repozitár — nezverejňovať!**
+⚠️ **Zverejnené pre archívne účely — nekopírujte, nula by Vás mrzela. Za nič také nenesiem žiadnu zodpovednosť!** Všetky odovzdané projekty prechádzajú kontrolou plagiátorstva, pri ktorej sa porovnávajú aj s dávnejšie odovzdanými riešeniami.
 
-Hodnotenie: ?? / 20<br>（?）
+Hodnotenie: 17 / 20<br>（no tests a málo teórie v docs...oh well...）
 
-Zadanie: [ZADANI.md](ZADANI.md), originál [GitFIT README](https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/commit/d34e41c447bf9e82ed63b90695f8253e22b1a93c/Project%201/README.md)
-
-### TODO-List ###
-
-- [X] ⏰ 2023-02-07 **Registrácia na projekt**
-- [X] ⏰ 2023-03-21 **Deadline**
+Zadanie: [ZADANI.md](ZADANI.md), originál [FITGit README](https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/commit/d34e41c447bf9e82ed63b90695f8253e22b1a93c/Project%201/README.md)
 
 ### Môže sa hodiť ###
 
