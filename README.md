@@ -4,6 +4,10 @@
 
 ⚠️ **Zverejnené pre archívne účely — nekopírujte, nula by Vás mrzela. Za nič také nenesiem žiadnu zodpovednosť!** Všetky odovzdané projekty prechádzajú kontrolou plagiátorstva, pri ktorej sa porovnávajú aj s dávnejšie odovzdanými riešeniami.
 
+<div align="center">
+    <img alt="demo" src="https://user-images.githubusercontent.com/84882649/236722714-3455a9a5-ec82-4ec6-8055-28bc94525e05.gif" width="50%">
+</div>
+
 Hodnotenie: 17 / 20<br>（žiadne testy (-2) a málo teórie v docs (-1)...oh well...）
 
 Zadanie: [ZADANI.md](ZADANI.md), originál [FITGit README](https://git.fit.vutbr.cz/NESFIT/IPK-Projekty/src/commit/d34e41c447bf9e82ed63b90695f8253e22b1a93c/Project%201/README.md)
