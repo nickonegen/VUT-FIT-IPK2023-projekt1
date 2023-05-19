@@ -1,6 +1,6 @@
 /**
  * @file client.cpp
- * @author Onegen Something <xonege99@vutbr.cz>
+ * @author Onegen Something <xkrame00@vutbr.cz>
  * @brief IPKCP Client
  * @date 2023-02-28
  *

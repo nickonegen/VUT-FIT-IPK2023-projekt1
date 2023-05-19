@@ -14,7 +14,6 @@ Zadanie: [ZADANI.md](ZADANI.md), originál [FITGit README](https://git.fit.vutbr
 
 ### Môže sa hodiť ###
 
-- [IPK-Guide](https://cdn.discordapp.com/attachments/591341367322476544/593314510908162067/IPK_Guide.pdf)
 - [Socket-Programming Fundamentals in C by Think and Learn](https://youtu.be/_lQ-3S4fJ0U?list=PLPyaR5G9aNDvs6TtdpLcVO43_jvxp4emI)
 - [C++ Socket-Programming on GeeksforGeeks](https://www.geeksforgeeks.org/socket-programming-cc/)
 
